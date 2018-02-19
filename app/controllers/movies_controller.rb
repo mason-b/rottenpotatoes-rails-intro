@@ -12,18 +12,38 @@ class MoviesController < ApplicationController
 
   def index
     @all_ratings = Movie.select(:rating).distinct.map{|record| record.rating}.sort
+    @all_ratings_params = Hash[@all_ratings.map {|u| [u, 1]}]
     if params.has_key?(:ratings)
       @selected_ratings = params[:ratings].keys 
+      session[:ratings] = @selected_ratings
+    elsif session.has_key?(:ratings)
+      @selected_ratings = session[:ratings]
     else
       @selected_ratings = @all_ratings
+      session[:ratings] = @selected_ratings
+    end
+    @selected_ratings_params = Hash[@selected_ratings.map {|u| [u, 1]}]
+    if not params.has_key?(:ratings) and session.has_key?(:ratings)
+      flash.keep
+      redirect_to controller: 'movies', action: 'movies', sort: session[:sort], utf8: "✓", ratings: @selected_ratings_params, commit: "Refresh" and return
     end
     @movies = Movie.where(rating: @selected_ratings)
-    if params[:sort] == "title"
+    if params.has_key?(:sort)
+      @sort = params[:sort]
+      session[:sort] = @sort
+    elsif session.has_key?(:sort)
+      @sort = session[:sort]
+    else
+      @sort = ""
+    end
+    if not params.has_key?(:sort) and session.has_key?(:sort)
+      flash.keep
+      redirect_to controller: 'movies', action: 'movies', sort: session[:sort], utf8: "✓", ratings: @selected_ratings_params, commit: "Refresh" and return
+    end
+    if @sort == "title"
       @movies = @movies.order("title")
-      @sort = "title"
-    elsif params[:sort] == "release_date"
+    elsif @sort == "release_date"
       @movies = @movies.order("release_date")
-      @sort = "release_date"
     end
   end
 
